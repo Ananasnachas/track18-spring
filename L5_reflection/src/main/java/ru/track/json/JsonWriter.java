@@ -1,9 +1,11 @@
 package ru.track.json;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
-import java.util.Collection;
-import java.util.Map;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.NotNull;
@@ -61,8 +63,33 @@ public class JsonWriter {
     private static String toJsonArray(@NotNull Object object) {
         int length = Array.getLength(object);
         // TODO: implement!
+        StringBuilder sb = new StringBuilder();
+        sb.append('[');
+        Object o;
+        for (int i = 0; i < length; i++) {
+            o = Array.get(object,i);
+            if(isNumber(o)){
+                sb.append(o);
+            }
+            else{
+                sb.append('"');
+                sb.append(o);
+                sb.append('"');
+            }
+            if(i<length-1)
+                sb.append(',');
+        }
+        sb.append(']');
+        return new String(sb);
+    }
 
-        return null;
+    private static boolean isNumber(Object o) {
+        Integer number = null;
+        try {
+            number = new Integer(o.toString());
+        } catch (Exception ignored) {
+        }
+        return number != null;
     }
 
     /**
@@ -83,8 +110,14 @@ public class JsonWriter {
     @NotNull
     private static String toJsonMap(@NotNull Object object) {
         // TODO: implement!
-
-        return null;
+        HashMap map = (HashMap)object;
+        Object[] keys = map.keySet().toArray();
+        Object[] values = map.values().toArray();
+        Map<String,String> stringMap = new LinkedHashMap<>();
+        for (int i = 0; i < keys.length; i++) {
+            stringMap.put(keys[i].toString(), toJson(values[i]));
+        }
+        return formatObject(stringMap);
         // Можно воспользоваться этим методом, если сохранить все поля в новой мапе уже в строковом представлении
 //        return formatObject(stringMap);
     }
@@ -106,12 +139,57 @@ public class JsonWriter {
      * и воспользоваться методом {@link #formatObject(Map)}
      */
     @NotNull
-    private static String toJsonObject(@NotNull Object object) {
+    private static String toJsonObject(@NotNull Object object){
+        boolean isClassNullable = false;
         Class clazz = object.getClass();
         // TODO: implement!
+        Map<String,String> stringMap = new LinkedHashMap<>();
+        Field[] fields = clazz.getDeclaredFields();
+        String s = "";
+        for (Annotation a :clazz.getAnnotations()) {
+            if(a.toString().equals("@ru.track.json.JsonNullable()")){
+                isClassNullable = true;
+            }
+            if(a.toString().equals("")){
+            }
+        }
+        for (Field field : fields) {
+            boolean isFieldSerialized = false;
+            field.setAccessible(true);
+            try {
+                s = toJson(field.get(object));
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+            String value = "";
+            for (Annotation a :field.getAnnotations()) {
+                if(a.toString().startsWith("@com.google.gson.annotations.SerializedName(")){
+                    value = a.toString().replaceFirst("@com\\.google\\.gson\\.annotations\\.SerializedName\\(alternate=\\[], value=", "")
+                            .replaceFirst("\\)","");
+                    isFieldSerialized = true;
 
-
-        return null;
+                }
+            }
+            if(!isFieldSerialized) {
+                if (isClassNullable) {
+                    stringMap.put(field.getName(), s);
+                } else {
+                    if (!s.equals("null")) {
+                        stringMap.put(field.getName(), s);
+                    }
+                }
+            }
+            else{
+                if (isClassNullable) {
+                    stringMap.put(value, s);
+                } else {
+                    if (!s.equals("null")) {
+                        stringMap.put(value, s);
+                    }
+                }
+            }
+        }
+        return formatObject(stringMap);
     }
 
     /**

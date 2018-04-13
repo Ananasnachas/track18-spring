@@ -1,7 +1,6 @@
 package ru.track.cypher;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -21,10 +20,16 @@ public class Decoder {
     public Decoder(@NotNull String domain, @NotNull String encryptedDomain) {
         Map<Character, Integer> domainHist = createHist(domain);
         Map<Character, Integer> encryptedDomainHist = createHist(encryptedDomain);
-
         cypher = new LinkedHashMap<>();
 
+        Character[] keys = new Character[0];
+        Character[] values = new Character[0];
+        keys = encryptedDomainHist.keySet().toArray(keys);
+        values= domainHist.keySet().toArray(values);
 
+        for (int i = 0; i < keys.length; i++) {
+            cypher.put(keys[i],values[i]);
+        }
     }
 
     public Map<Character, Character> getCypher() {
@@ -39,7 +44,7 @@ public class Decoder {
      */
     @NotNull
     public String decode(@NotNull String encoded) {
-        return null;
+        return new Encoder().encode(cypher, encoded);
     }
 
     /**
@@ -53,7 +58,27 @@ public class Decoder {
      */
     @NotNull
     Map<Character, Integer> createHist(@NotNull String text) {
-        return null;
+        Map<Character, Integer> hashMap = new HashMap<>();
+        for (int i = 0; i <= 'z' - 'a'; i++) {
+            hashMap.put((char)('a' + i), 0);
+        }
+        text = text.toLowerCase();
+        char[] chars = text.toCharArray();
+        Integer mapInt;
+        for (char c :chars) {
+            mapInt = hashMap.get(c);
+            if(mapInt != null){
+                hashMap.replace(c,mapInt + 1);
+            }
+        }
+        List<Map.Entry<Character, Integer>> list = new ArrayList<>(hashMap.entrySet());
+        list.sort(Comparator.comparing(o -> (-o.getValue())));
+
+        Map<Character, Integer> result = new LinkedHashMap<>();
+        for (Map.Entry<Character, Integer> aList : list) {
+            result.put(aList.getKey(), aList.getValue());
+        }
+        return result;
     }
 
 }

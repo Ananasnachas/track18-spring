@@ -14,7 +14,9 @@ public abstract class List {
     /**
      * Добавить элемент в конец списка
      */
-    abstract void add(int item);
+    void add(int item){
+
+    };
 
     /**
      * удалить элемент по индексу idx, если такого индекса нет или он невалидный,
