@@ -140,53 +140,23 @@ public class JsonWriter {
      */
     @NotNull
     private static String toJsonObject(@NotNull Object object){
-        boolean isClassNullable = false;
         Class clazz = object.getClass();
         // TODO: implement!
+        JsonNullable jsonNullable = (JsonNullable)clazz.getAnnotation(JsonNullable.class);
         Map<String,String> stringMap = new LinkedHashMap<>();
         Field[] fields = clazz.getDeclaredFields();
-        String s = "";
-        for (Annotation a :clazz.getAnnotations()) {
-            if(a.toString().equals("@ru.track.json.JsonNullable()")){
-                isClassNullable = true;
-            }
-            if(a.toString().equals("")){
-            }
-        }
+        String s = "null";
         for (Field field : fields) {
-            boolean isFieldSerialized = false;
+            SerializedTo serializedTo = field.getAnnotation(SerializedTo.class);
             field.setAccessible(true);
-            try {
-                s = toJson(field.get(object));
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
+            try { s = toJson(field.get(object)); }
+            catch (IllegalAccessException ignored){}
+            String key = (serializedTo == null ? field.getName() : serializedTo.value());
+            if (!s.equals("null")) {
+                stringMap.put(key, s);
             }
-            String value = "";
-            for (Annotation a :field.getAnnotations()) {
-                if(a.toString().startsWith("@com.google.gson.annotations.SerializedName(")){
-                    value = a.toString().replaceFirst("@com\\.google\\.gson\\.annotations\\.SerializedName\\(alternate=\\[], value=", "")
-                            .replaceFirst("\\)","");
-                    isFieldSerialized = true;
-
-                }
-            }
-            if(!isFieldSerialized) {
-                if (isClassNullable) {
-                    stringMap.put(field.getName(), s);
-                } else {
-                    if (!s.equals("null")) {
-                        stringMap.put(field.getName(), s);
-                    }
-                }
-            }
-            else{
-                if (isClassNullable) {
-                    stringMap.put(value, s);
-                } else {
-                    if (!s.equals("null")) {
-                        stringMap.put(value, s);
-                    }
-                }
+            else if(jsonNullable != null){
+                stringMap.put(key, "null");
             }
         }
         return formatObject(stringMap);

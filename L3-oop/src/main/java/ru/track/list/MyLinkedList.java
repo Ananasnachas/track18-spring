@@ -6,10 +6,35 @@ import java.util.NoSuchElementException;
  * Должен наследовать List
  * Односвязный список
  */
-public class MyLinkedList extends List {
+public class MyLinkedList extends List implements Queue, Stack{
 
     private Node first = null;
     private int length = 0;
+
+    @Override
+    public void enqueue(int value) {
+        add(value);
+    }
+
+    @Override
+    public int dequeu() {
+        int val = first.val;
+        remove(0);
+        return val;
+    }
+
+    @Override
+    public void push(int value) {
+        add(value);
+    }
+
+    @Override
+    public int pop() {
+        int val = get(length-1);
+        remove(length-1);
+        return val;
+    }
+
     /**
      * private - используется для сокрытия этого класса от других.
      * Класс доступен только изнутри того, где он объявлен
